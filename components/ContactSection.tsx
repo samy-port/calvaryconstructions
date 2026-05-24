@@ -28,6 +28,92 @@ export default function ContactSection() {
   const ctaRef = useRef<HTMLDivElement>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    project: "",
+  });
+  const [submissions, setSubmissions] = useState<{ email: string; phone: string }[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("consultation_submissions");
+    if (saved) {
+      try {
+        setSubmissions(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse submissions:", e);
+      }
+    }
+  }, []);
+
+  const handleFormSubmit = async () => {
+    setError(null);
+
+    // 1. Duplicate check
+    const isDuplicate = submissions.some(
+      (sub) =>
+        sub.email.toLowerCase() === formData.email.toLowerCase() ||
+        sub.phone === formData.phone
+    );
+
+    if (isDuplicate) {
+      setError(
+        "A consultation request with this email or phone number has already been submitted."
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // 2. Submit to Google Sheets via Google Apps Script Webhook
+      const scriptUrl =
+        "https://script.google.com/macros/s/AKfycbxkLZS0q-jUn6Akq9exylx-BjT3Ox5McdhclZwxOBm5YXcwcFupiHbnRmAl-dKCtUNn/exec";
+
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        project: formData.project,
+        timestamp: new Date().toLocaleString(),
+      };
+
+      await fetch(scriptUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      // 3. Save successful submission
+      const updatedSubmissions = [...submissions, { email: formData.email, phone: formData.phone }];
+      setSubmissions(updatedSubmissions);
+      localStorage.setItem("consultation_submissions", JSON.stringify(updatedSubmissions));
+
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error("Submission error:", err);
+      setError("An error occurred while submitting. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleTriggerSubmit = () => {
+    if (formRef.current) {
+      if (formRef.current.reportValidity()) {
+        handleFormSubmit();
+      }
+    }
+  };
+
   useEffect(() => {
     const handleOpenConsultation = () => {
       setIsModalOpen(true);
@@ -265,7 +351,14 @@ export default function ContactSection() {
             {/* Backdrop */}
             <div
               className="absolute inset-0 bg-[rgba(23,19,15,0.6)] backdrop-blur-sm"
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => {
+                setIsModalOpen(false);
+                setTimeout(() => {
+                  setIsSubmitted(false);
+                  setFormData({ name: "", email: "", phone: "", project: "" });
+                  setError(null);
+                }, 500);
+              }}
               aria-hidden="true"
             />
 
@@ -280,7 +373,14 @@ export default function ContactSection() {
             >
               {/* Close button */}
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setTimeout(() => {
+                    setIsSubmitted(false);
+                    setFormData({ name: "", email: "", phone: "", project: "" });
+                    setError(null);
+                  }, 500);
+                }}
                 className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center rounded-full hover:bg-[rgba(138,106,62,0.1)] transition-colors duration-300"
                 aria-label="Close consultation form"
               >
@@ -293,66 +393,170 @@ export default function ContactSection() {
                 Private Consultation
               </h3>
               <p className="text-sm text-[var(--muted-ink)] mb-10">
-                Begin shaping your world. Our team responds within 48 hours.
+                {!isSubmitted ? "Begin shaping your world. Our team responds within a while." : "Your consultation details have been received."}
               </p>
 
-              <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-                <div>
-                  <label
-                    htmlFor="consult-name"
-                    className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted-ink)] block mb-2"
+              <AnimatePresence mode="wait">
+                {!isSubmitted ? (
+                  <motion.form
+                    key="consultation-form"
+                    ref={formRef}
+                    onSubmit={(e) => e.preventDefault()}
+                    className="space-y-6"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    Full Name
-                  </label>
-                  <input
-                    id="consult-name"
-                    type="text"
-                    className="w-full bg-transparent border-b border-[var(--stone)] py-3 text-sm text-[var(--ink)] focus:border-[var(--champagne)] transition-colors duration-300 outline-none"
-                    placeholder="Your name"
-                    required
-                  />
-                </div>
+                    {/* Error Banner */}
+                    <AnimatePresence>
+                      {error && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0, y: -10 }}
+                          animate={{ opacity: 1, height: "auto", y: 0 }}
+                          exit={{ opacity: 0, height: 0, y: -10 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="bg-[rgba(138,106,62,0.08)] border border-[var(--bronze)]/30 rounded-xl p-4 text-xs text-[var(--bronze)] flex items-start gap-3">
+                            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div>
+                              <span className="font-bold block mb-1">Duplicate Entry Detected</span>
+                              {error}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
-                <div>
-                  <label
-                    htmlFor="consult-email"
-                    className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted-ink)] block mb-2"
-                  >
-                    Email
-                  </label>
-                  <input
-                    id="consult-email"
-                    type="email"
-                    className="w-full bg-transparent border-b border-[var(--stone)] py-3 text-sm text-[var(--ink)] focus:border-[var(--champagne)] transition-colors duration-300 outline-none"
-                    placeholder="your@email.com"
-                    required
-                  />
-                </div>
+                    <div>
+                      <label
+                        htmlFor="consult-name"
+                        className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted-ink)] block mb-2"
+                      >
+                        Full Name
+                      </label>
+                      <input
+                        id="consult-name"
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                        className="w-full bg-transparent border-b border-[var(--stone)] py-3 text-sm text-[var(--ink)] focus:border-[var(--champagne)] transition-colors duration-300 outline-none"
+                        placeholder="Your name"
+                        required
+                      />
+                    </div>
 
-                <div>
-                  <label
-                    htmlFor="consult-project"
-                    className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted-ink)] block mb-2"
-                  >
-                    Project Vision
-                  </label>
-                  <textarea
-                    id="consult-project"
-                    rows={3}
-                    className="w-full bg-transparent border-b border-[var(--stone)] py-3 text-sm text-[var(--ink)] focus:border-[var(--champagne)] transition-colors duration-300 outline-none resize-none"
-                    placeholder="Describe your impossible vision..."
-                  />
-                </div>
+                    <div>
+                      <label
+                        htmlFor="consult-email"
+                        className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted-ink)] block mb-2"
+                      >
+                        Email
+                      </label>
+                      <input
+                        id="consult-email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                        className="w-full bg-transparent border-b border-[var(--stone)] py-3 text-sm text-[var(--ink)] focus:border-[var(--champagne)] transition-colors duration-300 outline-none"
+                        placeholder="your@email.com"
+                        required
+                      />
+                    </div>
 
-                <div className="pt-4">
-                  <MagneticButton
-                    id="consult-submit"
-                    className="w-full bg-[var(--ink)] text-[var(--cloud)] border-[var(--ink)] hover:bg-[var(--bronze)] hover:border-[var(--bronze)]"
+                    <div>
+                      <label
+                        htmlFor="consult-phone"
+                        className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted-ink)] block mb-2"
+                      >
+                        Phone num
+                      </label>
+                      <input
+                        id="consult-phone"
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={formData.phone}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "");
+                          setFormData((prev) => ({ ...prev, phone: val }));
+                        }}
+                        className="w-full bg-transparent border-b border-[var(--stone)] py-3 text-sm text-[var(--ink)] focus:border-[var(--champagne)] transition-colors duration-300 outline-none"
+                        placeholder="e.g. 1234567890"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="consult-project"
+                        className="text-[10px] uppercase tracking-[0.2em] text-[var(--muted-ink)] block mb-2"
+                      >
+                        Project Vision
+                      </label>
+                      <textarea
+                        id="consult-project"
+                        rows={3}
+                        value={formData.project}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, project: e.target.value }))}
+                        className="w-full bg-transparent border-b border-[var(--stone)] py-3 text-sm text-[var(--ink)] focus:border-[var(--champagne)] transition-colors duration-300 outline-none resize-none"
+                        placeholder="Describe your impossible vision..."
+                      />
+                    </div>
+
+                    <div className="pt-4">
+                      <MagneticButton
+                        id="consult-submit"
+                        onClick={handleTriggerSubmit}
+                        className="w-full bg-[var(--ink)] text-[var(--cloud)] border-[var(--ink)] hover:bg-[var(--bronze)] hover:border-[var(--bronze)]"
+                      >
+                        {isSubmitting ? "Submitting..." : "Begin Conversation"}
+                      </MagneticButton>
+                    </div>
+                  </motion.form>
+                ) : (
+                  <motion.div
+                    key="consultation-success"
+                    className="text-center py-8 flex flex-col items-center justify-center"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4 }}
                   >
-                    Begin Conversation
-                  </MagneticButton>
-                </div>
-              </form>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
+                      className="w-16 h-16 bg-[var(--champagne)]/10 text-[var(--champagne)] rounded-full flex items-center justify-center mb-6 border border-[var(--champagne)]/20"
+                    >
+                      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </motion.div>
+                    <h4 className="text-lg font-display font-bold text-[var(--ink)] mb-2">
+                      Request Received
+                    </h4>
+                    <p className="text-sm text-[var(--muted-ink)] max-w-sm mb-8 leading-relaxed">
+                      Your consultation details have been sent. Our team will contact you shortly to begin the conversation.
+                    </p>
+                    <MagneticButton
+                      onClick={() => {
+                        setIsModalOpen(false);
+                        setTimeout(() => {
+                          setIsSubmitted(false);
+                          setFormData({ name: "", email: "", phone: "", project: "" });
+                          setError(null);
+                        }, 500);
+                      }}
+                      className="w-full bg-[var(--ink)] text-[var(--cloud)] border-[var(--ink)] hover:bg-[var(--bronze)] hover:border-[var(--bronze)]"
+                    >
+                      Close Window
+                    </MagneticButton>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}
