@@ -269,65 +269,85 @@ export default function ContactSection() {
           <div className="w-8 h-[1px] bg-[var(--stone)] opacity-40" aria-hidden="true" />
         </div>
 
-        {/* Social Links */}
-        <div className="flex items-center justify-center gap-6 mb-6">
-          <motion.a
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--muted-ink)] hover:text-[var(--bronze)] flex items-center justify-center w-8 h-8 rounded-full border border-[var(--stone)]/20 hover:border-[var(--bronze)]/50 hover:bg-[rgba(138,106,62,0.05)] transition-colors duration-300"
-            initial={{ opacity: 0.6 }}
-            whileHover={{ 
-              scale: 1.15, 
-              y: -3, 
-              opacity: 1,
-              borderColor: "var(--bronze)",
-              boxShadow: "0 4px 12px rgba(138, 106, 62, 0.15)"
-            }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            aria-label="Instagram"
-          >
-            <Instagram size={15} className="stroke-[1.5]" />
-          </motion.a>
-          <motion.a
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--muted-ink)] hover:text-[var(--bronze)] flex items-center justify-center w-8 h-8 rounded-full border border-[var(--stone)]/20 hover:border-[var(--bronze)]/50 hover:bg-[rgba(138,106,62,0.05)] transition-colors duration-300"
-            initial={{ opacity: 0.6 }}
-            whileHover={{ 
-              scale: 1.15, 
-              y: -3, 
-              opacity: 1,
-              borderColor: "var(--bronze)",
-              boxShadow: "0 4px 12px rgba(138, 106, 62, 0.15)"
-            }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            aria-label="Facebook"
-          >
-            <Facebook size={15} className="stroke-[1.5]" />
-          </motion.a>
-          <motion.a
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[var(--muted-ink)] hover:text-[var(--bronze)] flex items-center justify-center w-8 h-8 rounded-full border border-[var(--stone)]/20 hover:border-[var(--bronze)]/50 hover:bg-[rgba(138,106,62,0.05)] transition-colors duration-300"
-            initial={{ opacity: 0.6 }}
-            whileHover={{ 
-              scale: 1.15, 
-              y: -3, 
-              opacity: 1,
-              borderColor: "var(--bronze)",
-              boxShadow: "0 4px 12px rgba(138, 106, 62, 0.15)"
-            }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            aria-label="Pinterest"
-          >
-            <PinterestIcon className="w-[14px] h-[14px]" />
-          </motion.a>
+        {/* Footer Links & Info */}
+        <div className="max-w-4xl mx-auto px-6 w-full flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+          {/* Phone Numbers */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5 text-[10px] uppercase tracking-[0.18em] text-[var(--muted-ink)]">
+            <div className="flex items-center gap-2 text-[var(--ink)] opacity-90">
+              <svg className="w-3.5 h-3.5 text-[var(--champagne)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              <span>Call Us:</span>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 font-medium">
+              <a href="tel:9985775753" className="hover:text-[var(--bronze)] transition-all duration-300">99857 75753</a>
+              <span className="hidden sm:inline opacity-30">|</span>
+              <a href="tel:9985875753" className="hover:text-[var(--bronze)] transition-all duration-300">99858 75753</a>
+              <span className="hidden sm:inline opacity-30">|</span>
+              <a href="tel:9985975753" className="hover:text-[var(--bronze)] transition-all duration-300">99859 75753</a>
+            </div>
+          </div>
+
+          {/* Social Links */}
+          <div className="flex items-center gap-5">
+            <motion.a
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--muted-ink)] hover:text-[var(--bronze)] flex items-center justify-center w-8 h-8 rounded-full border border-[var(--stone)]/20 hover:border-[var(--bronze)]/50 hover:bg-[rgba(138,106,62,0.05)] transition-colors duration-300"
+              initial={{ opacity: 0.6 }}
+              whileHover={{ 
+                scale: 1.15, 
+                y: -3, 
+                opacity: 1,
+                borderColor: "var(--bronze)",
+                boxShadow: "0 4px 12px rgba(138, 106, 62, 0.15)"
+              }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              aria-label="Instagram"
+            >
+              <Instagram size={15} className="stroke-[1.5]" />
+            </motion.a>
+            <motion.a
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--muted-ink)] hover:text-[var(--bronze)] flex items-center justify-center w-8 h-8 rounded-full border border-[var(--stone)]/20 hover:border-[var(--bronze)]/50 hover:bg-[rgba(138,106,62,0.05)] transition-colors duration-300"
+              initial={{ opacity: 0.6 }}
+              whileHover={{ 
+                scale: 1.15, 
+                y: -3, 
+                opacity: 1,
+                borderColor: "var(--bronze)",
+                boxShadow: "0 4px 12px rgba(138, 106, 62, 0.15)"
+              }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              aria-label="Facebook"
+            >
+              <Facebook size={15} className="stroke-[1.5]" />
+            </motion.a>
+            <motion.a
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--muted-ink)] hover:text-[var(--bronze)] flex items-center justify-center w-8 h-8 rounded-full border border-[var(--stone)]/20 hover:border-[var(--bronze)]/50 hover:bg-[rgba(138,106,62,0.05)] transition-colors duration-300"
+              initial={{ opacity: 0.6 }}
+              whileHover={{ 
+                scale: 1.15, 
+                y: -3, 
+                opacity: 1,
+                borderColor: "var(--bronze)",
+                boxShadow: "0 4px 12px rgba(138, 106, 62, 0.15)"
+              }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              aria-label="Pinterest"
+            >
+              <PinterestIcon className="w-[14px] h-[14px]" />
+            </motion.a>
+          </div>
         </div>
 
         <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--muted-ink)] opacity-70">
