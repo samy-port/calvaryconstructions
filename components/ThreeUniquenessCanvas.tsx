@@ -132,7 +132,7 @@ function RenderController() {
   return null;
 }
 
-useGLTF.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.5/gltf/");
+useGLTF.setDecoderPath("/decoders/draco/");
 useGLTF.preload("/models/villa.glb");
 
 export default function ThreeUniquenessCanvas() {
