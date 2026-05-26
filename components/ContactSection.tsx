@@ -221,11 +221,11 @@ export default function ContactSection() {
         {/* Decorative mark */}
         <div className="mb-12 flex justify-center">
           <Image
-            src="/icons/logo-aureon-mark.svg"
+            src="/images/Logo02_GOLD.png"
             alt=""
-            width={40}
-            height={40}
-            className="opacity-30"
+            width={320}
+            height={320}
+            className="opacity-80"
             aria-hidden="true"
           />
         </div>
@@ -256,17 +256,17 @@ export default function ContactSection() {
 
       {/* Bottom decoration / Footer */}
       <footer className="relative z-10 text-center w-full mt-auto pt-8 pb-4">
-        <div className="flex items-center justify-center gap-4 mb-6">
-          <div className="w-8 h-[1px] bg-[var(--stone)] opacity-40" aria-hidden="true" />
+        <div className="flex items-center justify-center gap-16 mb-6">
+          <div className="w-28 h-[1px] bg-[var(--stone)] opacity-40" aria-hidden="true" />
           <Image
-            src="/icons/logo-aureon-mark.svg"
+            src="/images/Logo02_GOLD.png"
             alt=""
-            width={16}
-            height={16}
-            className="opacity-40"
+            width={128}
+            height={128}
+            className="opacity-90"
             aria-hidden="true"
           />
-          <div className="w-8 h-[1px] bg-[var(--stone)] opacity-40" aria-hidden="true" />
+          <div className="w-28 h-[1px] bg-[var(--stone)] opacity-40" aria-hidden="true" />
         </div>
 
         {/* Footer Links & Info */}

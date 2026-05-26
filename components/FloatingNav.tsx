@@ -110,31 +110,33 @@ export default function FloatingNav() {
       }}
       transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
       className={cn(
-        "fixed top-6 left-1/2 -translate-x-1/2 z-[var(--z-nav)]",
-        "pointer-events-auto"
+        "fixed top-6 left-0 right-0 z-[var(--z-nav)]",
+        "flex justify-center",
+        "pointer-events-none"
       )}
     >
       {/* Desktop Nav */}
       <div
         className={cn(
-          "hidden md:flex items-center gap-1",
-          "px-2 py-2 rounded-full",
+          "hidden md:flex items-center gap-2",
+          "px-3 py-2 rounded-full",
           "glass-warm",
-          "shadow-[0_4px_32px_rgba(138,106,62,0.08)]"
+          "shadow-[0_6px_36px_rgba(138,106,62,0.1)]",
+          "pointer-events-auto"
         )}
       >
         {/* Logo Mark */}
         <button
           onClick={() => handleNavClick(isHome ? "#hero" : "/")}
-          className="flex items-center justify-center w-8 h-8 mr-2 rounded-full hover:bg-[rgba(200,169,106,0.1)] transition-colors duration-300"
+          className="flex items-center justify-center w-14 h-14 mr-1 rounded-full hover:bg-[rgba(200,169,106,0.12)] transition-colors duration-300"
           aria-label="Scroll to top"
         >
           <Image
-            src="/icons/logo-aureon-mark.svg"
+            src="/images/Logo02_GOLD.png"
             alt="Calvary Constructions Logo"
-            width={20}
-            height={20}
-            className="opacity-70"
+            width={48}
+            height={48}
+            className="opacity-95"
           />
         </button>
 
@@ -171,7 +173,8 @@ export default function FloatingNav() {
           "md:hidden flex items-center justify-center",
           "w-12 h-12 rounded-full",
           "glass-warm",
-          "shadow-[0_4px_32px_rgba(138,106,62,0.08)]"
+          "shadow-[0_4px_32px_rgba(138,106,62,0.08)]",
+          "pointer-events-auto"
         )}
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         aria-label="Toggle navigation menu"
@@ -207,7 +210,8 @@ export default function FloatingNav() {
               "md:hidden absolute top-16 right-0",
               "w-48 py-3 px-2 rounded-2xl",
               "glass-warm",
-              "shadow-[0_8px_48px_rgba(138,106,62,0.12)]"
+              "shadow-[0_8px_48px_rgba(138,106,62,0.12)]",
+              "pointer-events-auto"
             )}
           >
             {navItems.map((item) => {
