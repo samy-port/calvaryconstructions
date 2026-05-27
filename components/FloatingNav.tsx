@@ -12,7 +12,9 @@ const HOME_NAV_ITEMS = [
   { label: "Who We Are", href: "#manifesto" },
   { label: "Services", href: "#services" },
   { label: "Our Uniqueness", href: "#uniqueness" },
+  { label: "Specialisation", href: "#specialisation" },
   { label: "Why Choose Us", href: "#why-choose-us" },
+  { label: "Ongoing Projects", href: "#ongoing-projects" },
   { label: "About Us", href: "/about" },
   { label: "Contact", href: "#cta" },
 ];
@@ -40,7 +42,16 @@ export default function FloatingNav() {
       setIsVisible(window.scrollY > 100);
 
       const sections = isHome
-        ? ["hero", "manifesto", "services", "uniqueness", "why-choose-us", "cta"]
+        ? [
+            "hero",
+            "manifesto",
+            "services",
+            "uniqueness",
+            "specialisation",
+            "why-choose-us",
+            "ongoing-projects",
+            "cta",
+          ]
         : ["mission-vision", "values"];
 
       const scrollPos = window.scrollY + window.innerHeight / 3;

@@ -10,7 +10,9 @@ import HeroSection from "@/components/HeroSection";
 import ManifestoSection from "@/components/ManifestoSection";
 import ServicesSection from "@/components/ServicesSection";
 import UniquenessSection from "@/components/UniquenessSection";
+import SpecialisationSection from "@/components/SpecialisationSection";
 import WhyChooseUsSection from "@/components/WhyChooseUsSection";
+import OnGoingProjectsSection from "@/components/OnGoingProjectsSection";
 import ContactSection from "@/components/ContactSection";
 
 export default function Home() {
@@ -54,11 +56,13 @@ export default function Home() {
         <HeroSection />
         <ManifestoSection />
         <ServicesSection />
-        
         <UniquenessSection />
+        <SpecialisationSection />
         <WhyChooseUsSection />
+        <OnGoingProjectsSection />
         <ContactSection />
       </main>
     </>
   );
 }
+
