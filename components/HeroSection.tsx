@@ -84,7 +84,7 @@ export default function HeroSection() {
       >
         <Image
           src="/images/private-mansion.png"
-          alt="Calvary Constructions Estate"
+          alt="Calvary Constructions Pvt Ltd Estate"
           fill
           priority
           sizes="100vw"
@@ -129,7 +129,7 @@ export default function HeroSection() {
         >
           Calvary <br />
           <span className="font-editorial italic font-normal text-[var(--champagne)] normal-case tracking-normal">
-            Constructions.
+            Constructions Pvt Ltd.
           </span>
         </h1>
 
@@ -145,12 +145,6 @@ export default function HeroSection() {
             className="px-8 py-3.5 bg-[var(--champagne)] border border-[var(--champagne)] text-[#17130F] text-[11px] uppercase tracking-widest font-semibold rounded-full hover:bg-transparent hover:text-white transition-all duration-300 transform hover:scale-[1.03] active:scale-[0.97]"
           >
             Get a Free Quote
-          </button>
-          <button
-            onClick={handleProjectsClick}
-            className="px-8 py-3.5 border border-white/40 bg-transparent text-white text-[11px] uppercase tracking-widest font-semibold rounded-full hover:bg-white hover:text-[#17130F] hover:border-white transition-all duration-300 transform hover:scale-[1.03] active:scale-[0.97]"
-          >
-            View Our Services
           </button>
         </div>
       </div>
@@ -171,7 +165,7 @@ export default function HeroSection() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes heroScrollPulse {
           0%, 100% { transform: scaleY(0.2); opacity: 0.2; transform-origin: top; }
           50% { transform: scaleY(1); opacity: 0.6; transform-origin: top; }

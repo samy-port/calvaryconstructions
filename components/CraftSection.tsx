@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import { gsap } from "@/lib/gsap";
 import { prefersReducedMotion, isMobile } from "@/lib/utils";
-
-const ThreeArchitecturalFragment = dynamic(
-  () => import("./ThreeArchitecturalFragment"),
-  { ssr: false }
-);
 
 interface CraftItem {
   title: string;
@@ -24,11 +19,6 @@ const CRAFT_ITEMS: CraftItem[] = [
 
 export default function CraftSection() {
   const sectionRef = useRef<HTMLElement>(null);
-  const [showThree, setShowThree] = useState(false);
-
-  useEffect(() => {
-    if (!isMobile()) setShowThree(true);
-  }, []);
 
   useEffect(() => {
     if (prefersReducedMotion() || !sectionRef.current) return;
@@ -47,6 +37,15 @@ export default function CraftSection() {
           anticipatePin: 1,
         }
       });
+
+      // Slow zoom in on the background image throughout the entire scroll sequence
+      tl.to(".craft-bg-image", {
+        scale: 1.15,
+        yPercent: 4,
+        xPercent: -2,
+        ease: "none",
+        duration: items.length * 3.5,
+      }, 0);
       
       items.forEach((item, i) => {
         tl.fromTo(
@@ -80,9 +79,16 @@ export default function CraftSection() {
         style={{ background: "radial-gradient(circle at center, transparent 40%, rgba(200, 190, 175, 0.2) 100%)" }}
       />
 
-      {/* 3D Canvas Background */}
+      {/* Parallax Background Image */}
       <div className="absolute inset-0 z-0">
-        {showThree && <ThreeArchitecturalFragment />}
+        <Image
+          src="/images/craft/blueprint-detail.webp"
+          alt="Calvary Constructions Craft Details Blueprint"
+          fill
+          sizes="100vw"
+          priority
+          className="craft-bg-image object-cover brightness-[0.92] contrast-[0.98] will-change-transform"
+        />
       </div>
 
       {/* Foreground Typography */}

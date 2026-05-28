@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function CustomCursor() {
+  const [mounted, setMounted] = useState(false);
   const cursorRef = useRef<HTMLDivElement>(null);
   const dotRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number>(0);
@@ -11,6 +12,7 @@ export default function CustomCursor() {
   const dotPosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    setMounted(true);
     // Bail on touch devices
     if (window.matchMedia("(pointer: coarse)").matches) return;
 
@@ -54,8 +56,8 @@ export default function CustomCursor() {
     };
   }, []);
 
-  // Hide on touch devices (SSR safe)
-  if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) {
+  // Hide on touch devices or before mount (hydration safe)
+  if (!mounted || (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches)) {
     return null;
   }
 

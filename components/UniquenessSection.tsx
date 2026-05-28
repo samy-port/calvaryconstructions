@@ -1,15 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import Image from "next/image";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { prefersReducedMotion } from "@/lib/utils";
 import { getLenis } from "@/lib/lenis";
-
-const ThreeUniquenessCanvas = dynamic(
-  () => import("./ThreeUniquenessCanvas"),
-  { ssr: false }
-);
 
 const USP_STATEMENTS = [
   {
@@ -97,28 +92,34 @@ export default function UniquenessSection() {
 
         // Explicitly set initial states at time 0 to reset slides correctly on repeat
         tl.set(".uniqueness-slide-1", { opacity: 1, y: 0 }, 0)
-          .set([".uniqueness-slide-2", ".uniqueness-slide-3", ".uniqueness-slide-4", ".uniqueness-slide-5"], { opacity: 0, y: 40 }, 0);
+          .set([".uniqueness-slide-2", ".uniqueness-slide-3", ".uniqueness-slide-4", ".uniqueness-slide-5"], { opacity: 0, y: 40 }, 0)
+          .set(".uniqueness-image-wrapper img", { scale: 1.0, xPercent: 0, yPercent: 0 }, 0);
 
         // Absolute positioned slide animations to guarantee synchronization regardless of mount order
         // Slide 1 to 2 transition
         tl.to(".uniqueness-slide-1", { opacity: 0, y: -40, duration: 0.4, ease: "power2.inOut" }, 1.0)
           .fromTo(".uniqueness-slide-2", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.inOut" }, 1.2)
+          .to(".uniqueness-image-wrapper img", { scale: 1.08, xPercent: 3, yPercent: -2, duration: 0.8, ease: "power2.inOut" }, 1.0)
           
         // Slide 2 to 3 transition
         tl.to(".uniqueness-slide-2", { opacity: 0, y: -40, duration: 0.4, ease: "power2.inOut" }, 3.2)
           .fromTo(".uniqueness-slide-3", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.inOut" }, 3.4)
+          .to(".uniqueness-image-wrapper img", { scale: 1.15, xPercent: -3, yPercent: 1, duration: 0.8, ease: "power2.inOut" }, 3.2)
           
         // Slide 3 to 4 transition
         tl.to(".uniqueness-slide-3", { opacity: 0, y: -40, duration: 0.4, ease: "power2.inOut" }, 5.4)
           .fromTo(".uniqueness-slide-4", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.inOut" }, 5.6)
+          .to(".uniqueness-image-wrapper img", { scale: 1.1, xPercent: 2, yPercent: -3, duration: 0.8, ease: "power2.inOut" }, 5.4)
           
         // Slide 4 to 5 transition
         tl.to(".uniqueness-slide-4", { opacity: 0, y: -40, duration: 0.4, ease: "power2.inOut" }, 7.6)
           .fromTo(".uniqueness-slide-5", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.inOut" }, 7.8)
+          .to(".uniqueness-image-wrapper img", { scale: 1.18, xPercent: -2, yPercent: -1, duration: 0.8, ease: "power2.inOut" }, 7.6)
 
         // Slide 5 back to 1 transition (Loop Transition)
         tl.to(".uniqueness-slide-5", { opacity: 0, y: -40, duration: 0.4, ease: "power2.inOut" }, 9.8)
           .fromTo(".uniqueness-slide-1", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.inOut" }, 10.0)
+          .to(".uniqueness-image-wrapper img", { scale: 1.0, xPercent: 0, yPercent: 0, duration: 0.8, ease: "power2.inOut" }, 9.8)
 
         // Hold Slide 1 at the end of loop until 11.0s repeat point
         tl.to({}, { duration: 0.6 }, 10.4);
@@ -127,9 +128,8 @@ export default function UniquenessSection() {
         ScrollTrigger.create({
           trigger: "#uniqueness",
           start: "top top",
-          end: "+=1px",
-          pin: true,
-          pinSpacing: true,
+          end: "+=200",
+          pin: false,
           invalidateOnRefresh: true,
           onEnter: () => {
             // Guard: Only snap/lock if the section's actual DOM element is aligned near the top of the viewport
@@ -198,16 +198,21 @@ export default function UniquenessSection() {
       {/* Desktop Layout (Pinned Split-Screen, full viewport height) - Hidden on Mobile */}
       <div className="hidden md:flex w-full h-full relative z-10 items-center justify-between">
         
-        {/* Left Column: Fixed 3D Canvas */}
-        <div className="w-1/2 h-full relative overflow-hidden flex items-center justify-center bg-transparent">
-          <div className="w-full h-full">
-            {isMounted && <ThreeUniquenessCanvas />}
-          </div>
-          {/* Subtle light vignette behind the 3D model */}
+        {/* Left Column: Fixed Luxury Image with Parallax & Ken Burns Effect */}
+        <div className="w-1/2 h-full relative overflow-hidden bg-transparent uniqueness-image-wrapper">
+          <Image
+            src="/images/projects/villa-01.webp"
+            alt="Calvary Constructions Uniqueness Architecture"
+            fill
+            sizes="50vw"
+            priority
+            className="object-cover brightness-[0.85] contrast-[1.05] will-change-transform"
+          />
+          {/* Subtle light vignette/gradient overlay */}
           <div 
             className="absolute inset-0 pointer-events-none mix-blend-multiply" 
             style={{
-              background: "radial-gradient(circle at center, transparent 30%, var(--background) 70%)"
+              background: "radial-gradient(circle at center, transparent 20%, var(--background) 80%)"
             }}
           />
         </div>

@@ -11,26 +11,21 @@ export default function Preloader() {
   const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Listen for progress events from the Hero canvas loader
-    const handleProgress = (e: CustomEvent<{ percent: number }>) => {
-      setProgress(e.detail.percent);
-      if (e.detail.percent >= 100 && !isLoaded) {
+    let currentProgress = 0;
+    const interval = setInterval(() => {
+      // Smooth deceleration curve towards 100%
+      currentProgress += Math.min(6, Math.ceil((100 - currentProgress) * 0.15));
+      currentProgress = Math.min(currentProgress, 100);
+      setProgress(currentProgress);
+
+      if (currentProgress >= 100) {
+        clearInterval(interval);
         setIsLoaded(true);
       }
-    };
+    }, 40);
 
-    window.addEventListener("hero-progress", handleProgress as EventListener);
-
-    // Fallback in case frames load instantly from cache or error out
-    const fallbackTimeout = setTimeout(() => {
-      if (!isLoaded) setIsLoaded(true);
-    }, 5000);
-
-    return () => {
-      window.removeEventListener("hero-progress", handleProgress as EventListener);
-      clearTimeout(fallbackTimeout);
-    };
-  }, [isLoaded]);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (isLoaded && containerRef.current && textRef.current && barRef.current) {
@@ -65,7 +60,7 @@ export default function Preloader() {
     >
       <div ref={textRef} className="flex flex-col items-center gap-6">
         <div className="text-[var(--champagne)] font-display text-lg md:text-2xl tracking-[0.2em] font-light text-center">
-          CALVARY CONSTRUCTIONS
+          CALVARY CONSTRUCTIONS PVT LTD
         </div>
         <div className="text-[var(--muted-ink)] font-editorial italic text-lg tracking-wide">
           Building strong foundations...

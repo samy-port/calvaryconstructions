@@ -3,31 +3,32 @@ import "./globals.css";
 import WhatsAppButton from "@/components/WhatsAppButton";
 
 export const metadata: Metadata = {
-  title: "Calvary Constructions — Building Strong Foundations for the Future",
+  title: "Calvary Constructions Pvt Ltd — Building Strong Foundations for the Future",
   description:
-    "Calvary Constructions delivers high-quality construction solutions for residential, commercial, and industrial projects with a focus on safety, precision, and timely delivery.",
+    "Calvary Constructions Pvt Ltd delivers high-quality construction solutions for residential, commercial, and industrial projects with a focus on safety, precision, and timely delivery.",
   keywords: [
     "construction company",
     "residential construction",
     "commercial construction",
     "industrial construction",
     "Calvary Constructions",
+    "Calvary Constructions Pvt Ltd",
     "building foundations",
     "renovation",
     "project management",
   ],
-  authors: [{ name: "Calvary Constructions" }],
+  authors: [{ name: "Calvary Constructions Pvt Ltd" }],
   openGraph: {
-    title: "Calvary Constructions — Building Strong Foundations for the Future",
+    title: "Calvary Constructions Pvt Ltd — Building Strong Foundations for the Future",
     description:
       "From concept to completion, our experienced team ensures every project is built with excellence, durability, and attention to detail.",
     type: "website",
     locale: "en_US",
-    siteName: "Calvary Constructions",
+    siteName: "Calvary Constructions Pvt Ltd",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Calvary Constructions — Building Strong Foundations for the Future",
+    title: "Calvary Constructions Pvt Ltd — Building Strong Foundations for the Future",
     description:
       "We deliver high-quality construction solutions for residential, commercial, and industrial projects with a focus on safety, precision, and timely delivery.",
   },

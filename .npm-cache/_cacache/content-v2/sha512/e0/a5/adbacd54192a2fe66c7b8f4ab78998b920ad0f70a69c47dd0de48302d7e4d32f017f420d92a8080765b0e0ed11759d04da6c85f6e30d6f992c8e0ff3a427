@@ -1,0 +1,653 @@
+alse;
+        }
+      }
+    }
+
+    if (allowBlockCollections) {
+      allowBlockCollections = atNewLine || allowCompact;
+    }
+
+    if (indentStatus === 1 || CONTEXT_BLOCK_OUT === nodeContext) {
+      if (CONTEXT_FLOW_IN === nodeContext || CONTEXT_FLOW_OUT === nodeContext) {
+        flowIndent = parentIndent;
+      } else {
+        flowIndent = parentIndent + 1;
+      }
+
+      blockIndent = state.position - state.lineStart;
+
+      if (indentStatus === 1) {
+        if (allowBlockCollections &&
+            (readBlockSequence(state, blockIndent) ||
+             readBlockMapping(state, blockIndent, flowIndent)) ||
+            readFlowCollection(state, flowIndent)) {
+          hasContent = true;
+        } else {
+          if ((allowBlockScalars && readBlockScalar(state, flowIndent)) ||
+              readSingleQuotedScalar(state, flowIndent) ||
+              readDoubleQuotedScalar(state, flowIndent)) {
+            hasContent = true;
+
+          } else if (readAlias(state)) {
+            hasContent = true;
+
+            if (state.tag !== null || state.anchor !== null) {
+              throwError(state, 'alias node should not have any properties');
+            }
+
+          } else if (readPlainScalar(state, flowIndent, CONTEXT_FLOW_IN === nodeContext)) {
+            hasContent = true;
+
+            if (state.tag === null) {
+              state.tag = '?';
+            }
+          }
+
+          if (state.anchor !== null) {
+            state.anchorMap[state.anchor] = state.result;
+          }
+        }
+      } else if (indentStatus === 0) {
+        // Special case: block sequences are allowed to have same indentation level as the parent.
+        // http://www.yaml.org/spec/1.2/spec.html#id2799784
+        hasContent = allowBlockCollections && readBlockSequence(state, blockIndent);
+      }
+    }
+
+    if (state.tag === null) {
+      if (state.anchor !== null) {
+        state.anchorMap[state.anchor] = state.result;
+      }
+
+    } else if (state.tag === '?') {
+      // Implicit resolving is not allowed for non-scalar types, and '?'
+      // non-specific tag is only automatically assigned to plain scalars.
+      //
+      // We only need to check kind conformity in case user explicitly assigns '?'
+      // tag, for example like this: "!<?> [0]"
+      //
+      if (state.result !== null && state.kind !== 'scalar') {
+        throwError(state, 'unacceptable node kind for !<?> tag; it should be "scalar", not "' + state.kind + '"');
+      }
+
+      for (typeIndex = 0, typeQuantity = state.implicitTypes.length; typeIndex < typeQuantity; typeIndex += 1) {
+        type = state.implicitTypes[typeIndex];
+
+        if (type.resolve(state.result)) { // `state.result` updated in resolver if matched
+          state.result = type.construct(state.result);
+          state.tag = type.tag;
+          if (state.anchor !== null) {
+            state.anchorMap[state.anchor] = state.result;
+          }
+          break;
+        }
+      }
+    } else if (state.tag !== '!') {
+      if (_hasOwnProperty$1.call(state.typeMap[state.kind || 'fallback'], state.tag)) {
+        type = state.typeMap[state.kind || 'fallback'][state.tag];
+      } else {
+        // looking for multi type
+        type = null;
+        typeList = state.typeMap.multi[state.kind || 'fallback'];
+
+        for (typeIndex = 0, typeQuantity = typeList.length; typeIndex < typeQuantity; typeIndex += 1) {
+          if (state.tag.slice(0, typeList[typeIndex].tag.length) === typeList[typeIndex].tag) {
+            type = typeList[typeIndex];
+            break;
+          }
+        }
+      }
+
+      if (!type) {
+        throwError(state, 'unknown tag !<' + state.tag + '>');
+      }
+
+      if (state.result !== null && type.kind !== state.kind) {
+        throwError(state, 'unacceptable node kind for !<' + state.tag + '> tag; it should be "' + type.kind + '", not "' + state.kind + '"');
+      }
+
+      if (!type.resolve(state.result, state.tag)) { // `state.result` updated in resolver if matched
+        throwError(state, 'cannot resolve a node with !<' + state.tag + '> explicit tag');
+      } else {
+        state.result = type.construct(state.result, state.tag);
+        if (state.anchor !== null) {
+          state.anchorMap[state.anchor] = state.result;
+        }
+      }
+    }
+
+    if (state.listener !== null) {
+      state.listener('close', state);
+    }
+    return state.tag !== null ||  state.anchor !== null || hasContent;
+  }
+
+  function readDocument(state) {
+    var documentStart = state.position,
+        _position,
+        directiveName,
+        directiveArgs,
+        hasDirectives = false,
+        ch;
+
+    state.version = null;
+    state.checkLineBreaks = state.legacy;
+    state.tagMap = Object.create(null);
+    state.anchorMap = Object.create(null);
+
+    while ((ch = state.input.charCodeAt(state.position)) !== 0) {
+      skipSeparationSpace(state, true, -1);
+
+      ch = state.input.charCodeAt(state.position);
+
+      if (state.lineIndent > 0 || ch !== 0x25/* % */) {
+        break;
+      }
+
+      hasDirectives = true;
+      ch = state.input.charCodeAt(++state.position);
+      _position = state.position;
+
+      while (ch !== 0 && !is_WS_OR_EOL(ch)) {
+        ch = state.input.charCodeAt(++state.position);
+      }
+
+      directiveName = state.input.slice(_position, state.position);
+      directiveArgs = [];
+
+      if (directiveName.length < 1) {
+        throwError(state, 'directive name must not be less than one character in length');
+      }
+
+      while (ch !== 0) {
+        while (is_WHITE_SPACE(ch)) {
+          ch = state.input.charCodeAt(++state.position);
+        }
+
+        if (ch === 0x23/* # */) {
+          do { ch = state.input.charCodeAt(++state.position); }
+          while (ch !== 0 && !is_EOL(ch));
+          break;
+        }
+
+        if (is_EOL(ch)) break;
+
+        _position = state.position;
+
+        while (ch !== 0 && !is_WS_OR_EOL(ch)) {
+          ch = state.input.charCodeAt(++state.position);
+        }
+
+        directiveArgs.push(state.input.slice(_position, state.position));
+      }
+
+      if (ch !== 0) readLineBreak(state);
+
+      if (_hasOwnProperty$1.call(directiveHandlers, directiveName)) {
+        directiveHandlers[directiveName](state, directiveName, directiveArgs);
+      } else {
+        throwWarning(state, 'unknown document directive "' + directiveName + '"');
+      }
+    }
+
+    skipSeparationSpace(state, true, -1);
+
+    if (state.lineIndent === 0 &&
+        state.input.charCodeAt(state.position)     === 0x2D/* - */ &&
+        state.input.charCodeAt(state.position + 1) === 0x2D/* - */ &&
+        state.input.charCodeAt(state.position + 2) === 0x2D/* - */) {
+      state.position += 3;
+      skipSeparationSpace(state, true, -1);
+
+    } else if (hasDirectives) {
+      throwError(state, 'directives end mark is expected');
+    }
+
+    composeNode(state, state.lineIndent - 1, CONTEXT_BLOCK_OUT, false, true);
+    skipSeparationSpace(state, true, -1);
+
+    if (state.checkLineBreaks &&
+        PATTERN_NON_ASCII_LINE_BREAKS.test(state.input.slice(documentStart, state.position))) {
+      throwWarning(state, 'non-ASCII line breaks are interpreted as content');
+    }
+
+    state.documents.push(state.result);
+
+    if (state.position === state.lineStart && testDocumentSeparator(state)) {
+
+      if (state.input.charCodeAt(state.position) === 0x2E/* . */) {
+        state.position += 3;
+        skipSeparationSpace(state, true, -1);
+      }
+      return;
+    }
+
+    if (state.position < (state.length - 1)) {
+      throwError(state, 'end of the stream or a document separator is expected');
+    } else {
+      return;
+    }
+  }
+
+
+  function loadDocuments(input, options) {
+    input = String(input);
+    options = options || {};
+
+    if (input.length !== 0) {
+
+      // Add tailing `\n` if not exists
+      if (input.charCodeAt(input.length - 1) !== 0x0A/* LF */ &&
+          input.charCodeAt(input.length - 1) !== 0x0D/* CR */) {
+        input += '\n';
+      }
+
+      // Strip BOM
+      if (input.charCodeAt(0) === 0xFEFF) {
+        input = input.slice(1);
+      }
+    }
+
+    var state = new State$1(input, options);
+
+    var nullpos = input.indexOf('\0');
+
+    if (nullpos !== -1) {
+      state.position = nullpos;
+      throwError(state, 'null byte is not allowed in input');
+    }
+
+    // Use 0 as string terminator. That significantly simplifies bounds check.
+    state.input += '\0';
+
+    while (state.input.charCodeAt(state.position) === 0x20/* Space */) {
+      state.lineIndent += 1;
+      state.position += 1;
+    }
+
+    while (state.position < (state.length - 1)) {
+      readDocument(state);
+    }
+
+    return state.documents;
+  }
+
+
+  function loadAll$1(input, iterator, options) {
+    if (iterator !== null && typeof iterator === 'object' && typeof options === 'undefined') {
+      options = iterator;
+      iterator = null;
+    }
+
+    var documents = loadDocuments(input, options);
+
+    if (typeof iterator !== 'function') {
+      return documents;
+    }
+
+    for (var index = 0, length = documents.length; index < length; index += 1) {
+      iterator(documents[index]);
+    }
+  }
+
+
+  function load$1(input, options) {
+    var documents = loadDocuments(input, options);
+
+    if (documents.length === 0) {
+      /*eslint-disable no-undefined*/
+      return undefined;
+    } else if (documents.length === 1) {
+      return documents[0];
+    }
+    throw new exception('expected a single document in the stream, but found more');
+  }
+
+
+  var loadAll_1 = loadAll$1;
+  var load_1    = load$1;
+
+  var loader = {
+  	loadAll: loadAll_1,
+  	load: load_1
+  };
+
+  /*eslint-disable no-use-before-define*/
+
+
+
+
+
+  var _toString       = Object.prototype.toString;
+  var _hasOwnProperty = Object.prototype.hasOwnProperty;
+
+  var CHAR_BOM                  = 0xFEFF;
+  var CHAR_TAB                  = 0x09; /* Tab */
+  var CHAR_LINE_FEED            = 0x0A; /* LF */
+  var CHAR_CARRIAGE_RETURN      = 0x0D; /* CR */
+  var CHAR_SPACE                = 0x20; /* Space */
+  var CHAR_EXCLAMATION          = 0x21; /* ! */
+  var CHAR_DOUBLE_QUOTE         = 0x22; /* " */
+  var CHAR_SHARP                = 0x23; /* # */
+  var CHAR_PERCENT              = 0x25; /* % */
+  var CHAR_AMPERSAND            = 0x26; /* & */
+  var CHAR_SINGLE_QUOTE         = 0x27; /* ' */
+  var CHAR_ASTERISK             = 0x2A; /* * */
+  var CHAR_COMMA                = 0x2C; /* , */
+  var CHAR_MINUS                = 0x2D; /* - */
+  var CHAR_COLON                = 0x3A; /* : */
+  var CHAR_EQUALS               = 0x3D; /* = */
+  var CHAR_GREATER_THAN         = 0x3E; /* > */
+  var CHAR_QUESTION             = 0x3F; /* ? */
+  var CHAR_COMMERCIAL_AT        = 0x40; /* @ */
+  var CHAR_LEFT_SQUARE_BRACKET  = 0x5B; /* [ */
+  var CHAR_RIGHT_SQUARE_BRACKET = 0x5D; /* ] */
+  var CHAR_GRAVE_ACCENT         = 0x60; /* ` */
+  var CHAR_LEFT_CURLY_BRACKET   = 0x7B; /* { */
+  var CHAR_VERTICAL_LINE        = 0x7C; /* | */
+  var CHAR_RIGHT_CURLY_BRACKET  = 0x7D; /* } */
+
+  var ESCAPE_SEQUENCES = {};
+
+  ESCAPE_SEQUENCES[0x00]   = '\\0';
+  ESCAPE_SEQUENCES[0x07]   = '\\a';
+  ESCAPE_SEQUENCES[0x08]   = '\\b';
+  ESCAPE_SEQUENCES[0x09]   = '\\t';
+  ESCAPE_SEQUENCES[0x0A]   = '\\n';
+  ESCAPE_SEQUENCES[0x0B]   = '\\v';
+  ESCAPE_SEQUENCES[0x0C]   = '\\f';
+  ESCAPE_SEQUENCES[0x0D]   = '\\r';
+  ESCAPE_SEQUENCES[0x1B]   = '\\e';
+  ESCAPE_SEQUENCES[0x22]   = '\\"';
+  ESCAPE_SEQUENCES[0x5C]   = '\\\\';
+  ESCAPE_SEQUENCES[0x85]   = '\\N';
+  ESCAPE_SEQUENCES[0xA0]   = '\\_';
+  ESCAPE_SEQUENCES[0x2028] = '\\L';
+  ESCAPE_SEQUENCES[0x2029] = '\\P';
+
+  var DEPRECATED_BOOLEANS_SYNTAX = [
+    'y', 'Y', 'yes', 'Yes', 'YES', 'on', 'On', 'ON',
+    'n', 'N', 'no', 'No', 'NO', 'off', 'Off', 'OFF'
+  ];
+
+  var DEPRECATED_BASE60_SYNTAX = /^[-+]?[0-9_]+(?::[0-9_]+)+(?:\.[0-9_]*)?$/;
+
+  function compileStyleMap(schema, map) {
+    var result, keys, index, length, tag, style, type;
+
+    if (map === null) return {};
+
+    result = {};
+    keys = Object.keys(map);
+
+    for (index = 0, length = keys.length; index < length; index += 1) {
+      tag = keys[index];
+      style = String(map[tag]);
+
+      if (tag.slice(0, 2) === '!!') {
+        tag = 'tag:yaml.org,2002:' + tag.slice(2);
+      }
+      type = schema.compiledTypeMap['fallback'][tag];
+
+      if (type && _hasOwnProperty.call(type.styleAliases, style)) {
+        style = type.styleAliases[style];
+      }
+
+      result[tag] = style;
+    }
+
+    return result;
+  }
+
+  function encodeHex(character) {
+    var string, handle, length;
+
+    string = character.toString(16).toUpperCase();
+
+    if (character <= 0xFF) {
+      handle = 'x';
+      length = 2;
+    } else if (character <= 0xFFFF) {
+      handle = 'u';
+      length = 4;
+    } else if (character <= 0xFFFFFFFF) {
+      handle = 'U';
+      length = 8;
+    } else {
+      throw new exception('code point within a string may not be greater than 0xFFFFFFFF');
+    }
+
+    return '\\' + handle + common.repeat('0', length - string.length) + string;
+  }
+
+
+  var QUOTING_TYPE_SINGLE = 1,
+      QUOTING_TYPE_DOUBLE = 2;
+
+  function State(options) {
+    this.schema        = options['schema'] || _default;
+    this.indent        = Math.max(1, (options['indent'] || 2));
+    this.noArrayIndent = options['noArrayIndent'] || false;
+    this.skipInvalid   = options['skipInvalid'] || false;
+    this.flowLevel     = (common.isNothing(options['flowLevel']) ? -1 : options['flowLevel']);
+    this.styleMap      = compileStyleMap(this.schema, options['styles'] || null);
+    this.sortKeys      = options['sortKeys'] || false;
+    this.lineWidth     = options['lineWidth'] || 80;
+    this.noRefs        = options['noRefs'] || false;
+    this.noCompatMode  = options['noCompatMode'] || false;
+    this.condenseFlow  = options['condenseFlow'] || false;
+    this.quotingType   = options['quotingType'] === '"' ? QUOTING_TYPE_DOUBLE : QUOTING_TYPE_SINGLE;
+    this.forceQuotes   = options['forceQuotes'] || false;
+    this.replacer      = typeof options['replacer'] === 'function' ? options['replacer'] : null;
+
+    this.implicitTypes = this.schema.compiledImplicit;
+    this.explicitTypes = this.schema.compiledExplicit;
+
+    this.tag = null;
+    this.result = '';
+
+    this.duplicates = [];
+    this.usedDuplicates = null;
+  }
+
+  // Indents every line in a string. Empty lines (\n only) are not indented.
+  function indentString(string, spaces) {
+    var ind = common.repeat(' ', spaces),
+        position = 0,
+        next = -1,
+        result = '',
+        line,
+        length = string.length;
+
+    while (position < length) {
+      next = string.indexOf('\n', position);
+      if (next === -1) {
+        line = string.slice(position);
+        position = length;
+      } else {
+        line = string.slice(position, next + 1);
+        position = next + 1;
+      }
+
+      if (line.length && line !== '\n') result += ind;
+
+      result += line;
+    }
+
+    return result;
+  }
+
+  function generateNextLine(state, level) {
+    return '\n' + common.repeat(' ', state.indent * level);
+  }
+
+  function testImplicitResolving(state, str) {
+    var index, length, type;
+
+    for (index = 0, length = state.implicitTypes.length; index < length; index += 1) {
+      type = state.implicitTypes[index];
+
+      if (type.resolve(str)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // [33] s-white ::= s-space | s-tab
+  function isWhitespace(c) {
+    return c === CHAR_SPACE || c === CHAR_TAB;
+  }
+
+  // Returns true if the character can be printed without escaping.
+  // From YAML 1.2: "any allowed characters known to be non-printable
+  // should also be escaped. [However,] This isn’t mandatory"
+  // Derived from nb-char - \t - #x85 - #xA0 - #x2028 - #x2029.
+  function isPrintable(c) {
+    return  (0x00020 <= c && c <= 0x00007E)
+        || ((0x000A1 <= c && c <= 0x00D7FF) && c !== 0x2028 && c !== 0x2029)
+        || ((0x0E000 <= c && c <= 0x00FFFD) && c !== CHAR_BOM)
+        ||  (0x10000 <= c && c <= 0x10FFFF);
+  }
+
+  // [34] ns-char ::= nb-char - s-white
+  // [27] nb-char ::= c-printable - b-char - c-byte-order-mark
+  // [26] b-char  ::= b-line-feed | b-carriage-return
+  // Including s-white (for some reason, examples doesn't match specs in this aspect)
+  // ns-char ::= c-printable - b-line-feed - b-carriage-return - c-byte-order-mark
+  function isNsCharOrWhitespace(c) {
+    return isPrintable(c)
+      && c !== CHAR_BOM
+      // - b-char
+      && c !== CHAR_CARRIAGE_RETURN
+      && c !== CHAR_LINE_FEED;
+  }
+
+  // [127]  ns-plain-safe(c) ::= c = flow-out  ⇒ ns-plain-safe-out
+  //          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"}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             import * as path from "path";
+import * as Filesystem from "./filesystem";
+import * as MappingEntry from "./mapping-entry";
+import * as TryPath from "./try-path";
+
+/**
+ * Function that can match a path
+ */
+export interface MatchPath {
+  (
+    requestedModule: string,
+    readJson?: Filesystem.ReadJsonSync,
+    fileExists?: (name: string) => boolean,
+    extensions?: ReadonlyArray<string>
+  ): string | undefined;
+}
+
+/**
+ * Creates a function that can resolve paths according to tsconfig paths property.
+ * @param absoluteBaseUrl Absolute version of baseUrl as specified in tsconfig.
+ * @param paths The paths as specified in tsconfig.
+ * @param mainFields A list of package.json field names to try when resolving module files.
+ * @param addMatchAll Add a match-all "*" rule if none is present
+ * @returns a function that can resolve paths.
+ */
+export function createMatchPath(
+  absoluteBaseUrl: string,
+  paths: { [key: string]: Array<string> },
+  mainFields: string[] = ["main"],
+  addMatchAll: boolean = true
+): MatchPath {
+  const absolutePaths = MappingEntry.getAbsoluteMappingEntries(
+    absoluteBaseUrl,
+    paths,
+    addMatchAll
+  );
+
+  return (
+    requestedModule: string,
+    readJson?: Filesystem.ReadJsonSync,
+    fileExists?: Filesystem.FileExistsSync,
+    extensions?: Array<string>
+  ) =>
+    matchFromAbsolutePaths(
+      absolutePaths,
+      requestedModule,
+      readJson,
+      fileExists,
+      extensions,
+      mainFields
+    );
+}
+
+/**
+ * Finds a path from tsconfig that matches a module load request.
+ * @param absolutePathMappings The paths to try as specified in tsconfig but resolved to absolute form.
+ * @param requestedModule The required module name.
+ * @param readJson Function that can read json from a path (useful for testing).
+ * @param fileExists Function that checks for existence of a file at a path (useful for testing).
+ * @param extensions File extensions to probe for (useful for testing).
+ * @param mainFields A list of package.json field names to try when resolving module files.
+ * @returns the found path, or undefined if no path was found.
+ */
+export function matchFromAbsolutePaths(
+  absolutePathMappings: ReadonlyArray<MappingEntry.MappingEntry>,
+  requestedModule: string,
+  readJson: Filesystem.ReadJsonSync = Filesystem.readJsonFromDiskSync,
+  fileExists: Filesystem.FileExistsSync = Filesystem.fileExistsSync,
+  extensions: Array<string> = Object.keys(require.extensions),
+  mainFields: string[] = ["main"]
+): string | undefined {
+  const tryPaths = TryPath.getPathsToTry(
+    extensions,
+    absolutePathMappings,
+    requestedModule
+  );
+
+  if (!tryPaths) {
+    return undefined;
+  }
+
+  return findFirstExistingPath(tryPaths, readJson, fileExists, mainFields);
+}
+
+function findFirstExistingMainFieldMappedFile(
+  packageJson: Filesystem.PackageJson,
+  mainFields: string[],
+  packageJsonPath: string,
+  fileExists: Filesystem.FileExistsSync
+): string | undefined {
+  for (let index = 0; index < mainFields.length; index++) {
+    const mainFieldName = mainFields[index];
+    const candidateMapping = packageJson[mainFieldName];
+    if (candidateMapping && typeof candidateMapping === "string") {
+      const candidateFilePath = path.join(
+        path.dirname(packageJsonPath),
+        candidateMapping
+      );
+      if (fileExists(candidateFilePath)) {
+        return candidateFilePath;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function findFirstExistingPath(
+  tryPaths: ReadonlyArray<TryPath.TryPath>,
+  readJson: Filesystem.ReadJsonSync = Filesystem.readJsonFromDiskSync,
+  fileExists: Filesystem.FileExistsSync,
+  mainFields: string[] = ["main"]
+): string | undefined {
+  for (const tryPath of tryPaths) {
+    if (
+      tryPath.type === "file" ||
+      tryPath.type === "extension" ||
+      tryPath.type === "index"
+    ) {
+      if (fileExists(tryPath.path)) {
+        return TryPath.getStrippedPath(tryPath);
+      }
+    } else if (tryPath.type === "package") {
+      const packageJson: Filesystem.PackageJson = readJson(tryPath.path);
+      if (packageJson) {
+        const mainFieldMappedFile = findFirstExistingMainFieldMapLevel=function(t){var r=this,i=this.hls.levels;if(!i.length)return-1;var a=i.filter((function(e,i){return r.isLevelAllowed(e)&&i<=t}));return this.clientRect=null,e.getMaxLevelByMediaSize(a,this.mediaWidth,this.mediaHeight)},t.startCapping=function(){this.timer||(this.autoLevelCapping=Number.POSITIVE_INFINITY,self.clearInterval(this.timer),this.timer=self.setInterval(this.detectPlayerSize.bind(this),1e3),this.detectPlayerSize())},t.stopCapping=function(){this.restrictedLevels=[],this.firstLevel=-1,this.autoLevelCapping=Number.POSITIVE_INFINITY,this.timer&&(self.clearInterval(this.timer),this.timer=void 0)},t.getDimensions=function(){if(this.clientRect)return this.clientRect;var e=this.media,t={width:0,height:0};if(e){var r=e.getBoundingClientRect();t.width=r.width,t.height=r.height,t.width||t.height||(t.width=r.right-r.left||e.width||0,t.height=r.bottom-r.top||e.height||0)}return this.clientRect=t,t},t.isLevelAllowed=function(e){return!this.restrictedLevels.some((function(t){return e.bitrate===t.bitrate&&e.width===t.width&&e.height===t.height}))},e.getMaxLevelByMediaSize=function(e,t,r){if(null==e||!e.length)return-1;for(var i,a,n=e.length-1,s=Math.max(t,r),o=0;o<e.length;o+=1){var l=e[o];if((l.width>=s||l.height>=s)&&(i=l,!(a=e[o+1])||i.width!==a.width||i.height!==a.height)){n=o;break}}return n},i(e,[{key:"mediaWidth",get:function(){return this.getDimensions().width*this.contentScaleFactor}},{key:"mediaHeight",get:function(){return this.getDimensions().height*this.contentScaleFactor}},{key:"contentScaleFactor",get:function(){var e=1;if(!this.hls.config.ignoreDevicePixelRatio)try{e=self.devicePixelRatio}catch(e){}return Math.min(e,this.hls.config.maxDevicePixelRatio)}}])}(),Gt=/^(\d+)x(\d+)$/,Vt=/(.+?)=(".*?"|.*?)(?:,|$)/g,Ht=function(){function e(t,r){"string"==typeof t&&(t=e.parseAttrList(t,r)),n(this,t)}var t=e.prototype;return t.decimalInteger=function(e){var t=parseInt(this[e],10);return t>Number.MAX_SAFE_INTEGER?1/0:t},t.hexadecimalInteger=function(e){if(this[e]){var t=(this[e]||"0x").slice(2);t=(1&t.length?"0":"")+t;for(var r=new Uint8Array(t.length/2),i=0;i<t.length/2;i++)r[i]=parseInt(t.slice(2*i,2*i+2),16);return r}return null},t.hexadecimalIntegerAsNumber=function(e){var t=parseInt(this[e],16);return t>Number.MAX_SAFE_INTEGER?1/0:t},t.decimalFloatingPoint=function(e){return parseFloat(this[e])},t.optionalFloat=function(e,t){var r=this[e];return r?parseFloat(r):t},t.enumeratedString=function(e){return this[e]},t.enumeratedStringList=function(e,t){var r=this[e];return(r?r.split(/[ ,]+/):[]).reduce((function(e,t){return e[t.toLowerCase()]=!0,e}),t)},t.bool=function(e){return"YES"===this[e]},t.decimalResolution=function(e){var t=Gt.exec(this[e]);if(null!==t)return{width:parseInt(t[1],10),height:parseInt(t[2],10)}},e.parseAttrList=function(e,t){var r,i={};for(Vt.lastIndex=0;null!==(r=Vt.exec(e));){var a=r[1].trim(),n=r[2],s=0===n.indexOf('"')&&n.lastIndexOf('"')===n.length-1,o=!1;if(s)n=n.slice(1,-1);else switch(a){case"IV":case"SCTE35-CMD":case"SCTE35-IN":case"SCTE35-OUT":o=!0}if(t&&(s||o));else if(!o&&!s)switch(a){case"CLOSED-CAPTIONS":if("NONE"===n)break;case"ALLOWED-CPC":case"CLASS":case"ASSOC-LANGUAGE":case"AUDIO":case"BYTERANGE":case"CHANNELS":case"CHARACTERISTICS":case"CODECS":case"DATA-ID":case"END-DATE":case"GROUP-ID":case"ID":case"IMPORT":case"INSTREAM-ID":case"KEYFORMAT":case"KEYFORMATVERSIONS":case"LANGUAGE":case"NAME":case"PATHWAY-ID":case"QUERYPARAM":case"RECENTLY-REMOVED-DATERANGES":case"SERVER-URI":case"STABLE-RENDITION-ID":case"STABLE-VARIANT-ID":case"START-DATE":case"SUBTITLES":case"SUPPLEMENTAL-CODECS":case"URI":case"VALUE":case"VIDEO":case"X-ASSET-LIST":case"X-ASSET-URI":j.warn(e+": attribute "+a+" is missing quotes")}i[a]=n}return i},i(e,[{key:"clientAttrs",get:function(){return Object.keys(this).filter((function(e){return"X-"===e.substring(0,2)}))}}])}();function Kt(e){return"SCTE35-OUT"===e||"SCTE35-IN"===e||"SCTE35-CMD"===e}var Yt=function(){return i((function(e,t,r){var i;if(void 0===r&&(r=0),this.attr=void 0,this.tagAnchor=void 0,this.tagOrder=void 0,this._startDate=void 0,this._endDate=void 0,this._dateAtEnd=void 0,this._cue=void 0,this._badValueForSameId=void 0,this.tagAnchor=(null==t?void 0:t.tagAnchor)||null,this.tagOrder=null!=(i=null==t?void 0:t.tagOrder)?i:r,t){var a=t.attr;for(var s in a)if(Object.prototype.hasOwnProperty.call(e,s)&&e[s]!==a[s]){j.warn('DATERANGE tag attribute: "'+s+'" does not match for tags with ID: "'+e.ID+'"'),this._badValueForSameId=s;break}e=n(new Ht({}),a,e)}if(this.attr=e,t?(this._startDate=t._startDate,this._cue=t._cue,this._endDate=t._endDate,this._dateAtEnd=t._dateAtEnd):this._startDate=new Date(e["START-DATE"]),"END-DATE"in this.attr){var o=(null==t?void 0:t.endDate)||new Date(this.attr["END-DATE"]);L(o.getTime())&&(this._endDate=o)}}),[{key:"id",get:function(){return this.attr.ID}},{key:"class",get:function(){return this.attr.CLASS}},{key:"cue",get:function(){var e=this._cue;return void 0===e?this._cue=this.attr.enumeratedStringList(this.attr.CUE?"CUE":"X-CUE",{pre:!1,post:!1,once:!1}):e}},{key:"startTime",get:function(){var e=this.tagAnchor;return null===e||null===e.programDateTime?(j.warn('Expected tagAnchor Fragment with PDT set for DateRange "'+this.id+'": '+e),NaN):e.start+(this.startDate.getTime()-e.programDateTime)/1e3}},{key:"startDate",get:function(){return this._startDate}},{key:"endDate",get:function(){var e=this._endDate||this._dateAtEnd;if(e)return e;var t=this.duration;return null!==t?this._dateAtEnd=new Date(this._startDate.getTime()+1e3*t):null}},{key:"duration",get:function(){if("DURATION"in this.attr){var e=this.attr.decimalFloatingPoint("DURATION");if(L(e))return e}else if(this._endDate)return(this._endDate.getTime()-this._startDate.getTime())/1e3;return null}},{key:"plannedDuration",get:function(){return"PLANNED-DURATION"in this.attr?this.attr.decimalFloatingPoint("PLANNED-DURATION"):null}},{key:"endOnNext",get:function(){return this.attr.bool("END-ON-NEXT")}},{key:"isInterstitial",get:function(){return"com.apple.hls.interstitial"===this.class}},{key:"isValid",get:function(){return!!this.id&&!this._badValueForSameId&&L(this.startDate.getTime())&&(null===this.duration||this.duration>=0)&&(!this.endOnNext||!!this.class)&&(!this.attr.CUE||!this.cue.pre&&!this.cue.post||this.cue.pre!==this.cue.post)&&(!this.isInterstitial||"X-ASSET-URI"in this.attr||"X-ASSET-LIST"in this.attr)}}])}(),Wt=function(){function e(e){this.PTSKnown=!1,this.alignedSliding=!1,this.averagetargetduration=void 0,this.endCC=0,this.endSN=0,this.fragments=void 0,this.fragmentHint=void 0,this.partList=null,this.dateRanges=void 0,this.dateRangeTagCount=0,this.live=!0,this.requestScheduled=-1,this.ageHeader=0,this.advancedDateTime=void 0,this.updated=!0,this.advanced=!0,this.misses=0,this.startCC=0,this.startSN=0,this.startTimeOffset=null,this.targetduration=0,this.totalduration=0,this.type=null,this.url=void 0,this.m3u8="",this.version=null,this.canBlockReload=!1,this.canSkipUntil=0,this.canSkipDateRanges=!1,this.skippedSegments=0,this.recentlyRemovedDateranges=void 0,this.partHoldBack=0,this.holdBack=0,this.partTarget=0,this.preloadHint=void 0,this.renditionReports=void 0,this.tuneInGoal=0,this.deltaUpdateFailed=void 0,this.driftStartTime=0,this.driftEndTime=0,this.driftStart=0,this.driftEnd=0,this.encryptedFragments=void 0,this.playlistParsingError=null,this.variableList=null,this.hasVariableRefs=!1,this.appliedTimelineOffset=void 0,this.fragments=[],this.encryptedFragments=[],this.dateRanges={},this.url=e}var t=e.prototype;return t.reloaded=function(e){if(!e)return this.advanced=!0,void(this.updated=!0);var t=this.lastPartSn-e.lastPartSn,r=this.lastPartIndex-e.lastPartIndex;this.updated=this.endSN!==e.endSN||!!r||!!t||!this.live,this.advanced=this.endSN>e.endSN||t>0||0===t&&r>0,this.updated||this.advanced?this.misses=Math.floor(.6*e.misses):this.misses=e.misses+1},t.hasKey=function(e){return this.encryptedFragments.some((function(t){var r=t.decryptdata;return r||(t.setKeyFormat(e.keyFormat),r=t.decryptdata),!!r&&e.matches(r)}))},i(e,[{key:"hasProgramDateTime",get:function(){return!!this.fragments.length&&L(this.fragments[this.fragments.length-1].programDateTime)}},{key:"levelTargetDuration",get:function(){return this.averagetargetduration||this.targetduration||10}},{key:"drift",get:function(){var e=this.driftEndTime-this.driftStartTime;return e>0?1e3*(this.driftEnd-this.driftStart)/e:1}},{key:"edge",get:function(){return this.partEnd||this.fragmentEnd}},{key:"partEnd",get:function(){var e;return null!=(e=this.partList)&&e.length?this.partList[this.partList.length-1].end:this.fragmentEnd}},{key:"fragmentEnd",get:function(){return this.fragments.length?this.fragments[this.fragments.length-1].end:0}},{key:"fragmentStart",get:function(){return this.fragments.length?this.fragments[0].start:0}},{key:"age",get:function(){return this.advancedDateTime?Math.max(Date.now()-this.advancedDateTime,0)/1e3:0}},{key:"lastPartIndex",get:function(){var e;return null!=(e=this.partList)&&e.length?this.partList[this.partList.length-1].index:-1}},{key:"maxPartIndex",get:function(){var e=this.partList;if(e){var t=this.lastPartIndex;if(-1!==t){for(var r=e.length;r--;)if(e[r].index>t)return e[r].index;return t}}return 0}},{key:"lastPartSn",get:function(){var e;return null!=(e=this.partList)&&e.length?this.partList[this.partList.length-1].fragment.sn:this.endSN}},{key:"expired",get:function(){if(this.live&&this.age&&this.misses<3){var e=this.partEnd-this.fragmentStart;return this.age>Math.max(e,this.totalduration)+this.levelTargetDuration}return!1}}])}();function jt(e,t){return e.length===t.length&&!e.some((function(e,r){return e!==t[r]}))}function qt(e,t){return!e&&!t||!(!e||!t)&&jt(e,t)}var Xt=0,zt=1;function Qt(e){return"AES-128"===e||"AES-256"===e||"AES-256-CTR"===e}function $t(e){switch(e){case"AES-128":case"AES-256":return Xt;case"AES-256-CTR":return zt;default:throw new Error("invalid full segment method "+e)}}var Zt={},Jt=function(){function e(e,t,r,i,a,n){void 0===i&&(i=[1]),void 0===a&&(a=null),this.uri=void 0,this.method=void 0,this.keyFormat=void 0,this.keyFormatVersions=void 0,this.encrypted=void 0,this.isCommonEncryption=void 0,this.iv=null,this.key=null,this.keyId=null,this.pssh=null,this.method=e,this.uri=t,this.keyFormat=r,this.keyFormatVersions=i,this.iv=a,this.encrypted=!!e&&"NONE"!==e,this.isCommonEncryption=this.encrypted&&!Qt(e),null!=n&&n.startsWith("0x")&&(this.keyId=new Uint8Array(Z(n)))}e.clearKeyUriToKeyIdMap=function(){Zt={}},e.setKeyIdForUri=function(e,t){Zt[e]=t},e.addKeyIdForUri=function(e){var t=Object.keys(Zt).length%Number.MAX_SAFE_INTEGER,r=new Uint8Array(16);return new DataView(r.buffer,12,4).setUint32(0,t),Zt[e]=r,r};var t=e.prototype;return t.matches=function(e){return e.uri===this.uri&&e.method===this.method&&e.encrypted===this.encrypted&&e.keyFormat===this.keyFormat&&jt(e.keyFormatVersions,this.keyFormatVersions)&&qt(e.iv,this.iv)&&qt(e.keyId,this.keyId)},t.isSupported=function(){if(this.method){if(Qt(this.method)||"NONE"===this.method)return!0;if("identity"===this.keyFormat)return"SAMPLE-AES"===this.method}return!1},t.getDecryptData=function(t,r){if(!this.encrypted||!this.uri)return null;if(Qt(this.method)){var i=this.iv;return i||("number"!=typeof t&&(j.warn('missing IV for initialization segment with method="'+this.method+'" - compliance issue'),t=0),i=function(e){for(var t=new Uint8Array(16),r=12;r<16;r++)t[r]=e>>8*(15-r)&255;return t}(t)),new e(this.method,this.uri,"identity",this.keyFormatVersions,i)}return this},e}(),er=/#EXT-X-STREAM-INF:([^\r\n]*)(?:[\r\n](?:#[^\r\n]*)?)*([^\r\n]+)|#EXT-X-(SESSION-DATA|SESSION-KEY|DEFINE|CONTENT-STEERING|START):([^\r\n]*)[\r\n]+/g,tr=/#EXT-X-MEDIA:(.*)/g,rr=/^#EXT(?:INF|-X-TARGETDURATION):/m,ir=new RegExp([/#EXTINF:\s*(\d*(?:\.\d+)?)(?:,(.*)\s+)?/.source,/(?!#) *(\S[^\r\n]*)/.source,/#.*/.source].join("|"),"g"),ar=new RegExp([/#EXT-X-(PROGRAM-DATE-TIME|BYTERANGE|DATERANGE|DEFINE|KEY|MAP|PART|PART-INF|PLAYLIST-TYPE|PRELOAD-HINT|RENDITION-REPORT|SERVER-CONTROL|SKIP|START):(.+)/.source,/#EXT-X-(BITRATE|DISCONTINUITY-SEQUENCE|MEDIA-SEQUENCE|TARGETDURATION|VERSION): *(\d+)/.source,/#EXT-X-(DISCONTINUITY|ENDLIST|GAP|INDEPENDENT-SEGMENTS)/.source,/(#)([^:]*):(.*)/.source,/(#)(.*)(?:.*)\r?\n?/.source].join("|")),nr=function(){function e(){}return e.findGroup=function(e,t){for(var r=0;r<e.length;r++){var i=e[r];if(i.id===t)return i}},e.resolve=function(e,t){return S.buildAbsoluteURL(t,e,{alwaysNormalize:!0})},e.isMediaPlaylist=function(e){return rr.test(e)},e.parseMasterPlaylist=function(t,r){var i,a={contentSteering:null,levels:[],playlistParsingError:null,sessionData:null,sessionKeys:null,startTimeOffset:null,variableList:null,hasVariableRefs:!1},n=[];if(er.lastIndex=0,!t.startsWith("#EXTM3U"))return a.playlistParsingError=new Error("no EXTM3U delimiter"),a;for(;null!=(i=er.exec(t));)if(i[1]){var s,o=new Ht(i[1],a),l=i[2],u={attrs:o,bitrate:o.decimalInteger("BANDWIDTH")||o.decimalInteger("AVERAGE-BANDWIDTH"),name:o.NAME,url:e.resolve(l,r)},d=o.decimalResolution("RESOLUTION");d&&(u.width=d.width,u.height=d.height),dr(o.CODECS,u);var h=o["SUPPLEMENTAL-CODECS"];h&&(u.supplemental={},dr(h,u.supplemental)),null!=(s=u.unknownCodecs)&&s.length||n.push(u),a.levels.push(u)}else if(i[3]){var f=i[3],c=i[4];switch(f){case"SESSION-DATA":var v=new Ht(c,a),g=v["DATA-ID"];g&&(null===a.sessionData&&(a.sessionData={}),a.sessionData[g]=v);break;case"SESSION-KEY":var m=lr(c,r,a);m.encrypted&&m.isSupported()?(null===a.sessionKeys&&(a.sessionKeys=[]),a.sessionKeys.push(m)):j.warn('[Keys] Ignoring invalid EXT-X-SESSION-KEY tag: "'+c+'"');break;case"DEFINE":break;case"CONTENT-STEERING":var p=new Ht(c,a);a.contentSteering={uri:e.resolve(p["SERVER-URI"],r),pathwayId:p["PATHWAY-ID"]||"."};break;case"START":a.startTimeOffset=ur(c)}}var y=n.length>0&&n.length<a.levels.length;return a.levels=y?n

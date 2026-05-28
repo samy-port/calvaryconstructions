@@ -6,7 +6,7 @@ import { prefersReducedMotion } from "@/lib/utils";
 
 const MANIFESTO_STATEMENTS: { text: ReactNode; highlight: boolean }[] = [
   { text: "Who We Are", highlight: true },
-  { text: "At Calvary Constructions, we specialize in delivering reliable and cost-effective construction services tailored to client needs.", highlight: false },
+  { text: "At Calvary Constructions Pvt Ltd, we specialize in delivering reliable and cost-effective construction services tailored to client needs.", highlight: false },
   {
     text: (
       <span>

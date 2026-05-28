@@ -200,7 +200,7 @@ export default function ContactSection() {
       id="cta" 
       className="relative min-h-screen flex flex-col justify-between items-center pt-24 pb-8 md:pt-32 md:pb-12 overflow-hidden"
       style={{ backgroundColor: "var(--surface)" }}
-      aria-label="Ready to Build — Contact Calvary Constructions"
+      aria-label="Ready to Build — Contact Calvary Constructions Pvt Ltd"
     >
       {/* Atmospheric layers */}
       <AtmosphereLayer type="dust" opacity={0.12} speed={0.2} />
@@ -232,13 +232,13 @@ export default function ContactSection() {
 
         <h2
           ref={headingRef}
-          className="text-section-title font-display text-[var(--ink)] mb-8"
+          className="font-display font-bold text-[clamp(2rem,4vw,3.5rem)] leading-[0.95] tracking-tighter text-[var(--ink)] mb-8"
         >
           Ready to Build Your Dream Project?
         </h2>
 
         <div ref={copyRef}>
-          <p className="text-section-body text-[var(--muted-ink)] mb-3 max-w-xl mx-auto">
+          <p className="text-base md:text-lg font-light leading-relaxed text-[var(--muted-ink)] mb-3 max-w-xl mx-auto">
             Partner with us for dependable construction services that combine quality, innovation, and integrity.
           </p>
         </div>
@@ -351,7 +351,7 @@ export default function ContactSection() {
         </div>
 
         <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--muted-ink)] opacity-70">
-          &copy; {new Date().getFullYear()} Calvary Constructions — Building Strong Foundations
+          &copy; {new Date().getFullYear()} Calvary Constructions Pvt Ltd — Building Strong Foundations
         </p>
       </footer>
 

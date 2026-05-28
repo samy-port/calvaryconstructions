@@ -115,7 +115,7 @@ export default function AboutPage() {
 
           <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 text-center">
             <span className="text-[11px] uppercase tracking-[0.4em] text-[var(--champagne)] mb-8 block font-medium">
-              Calvary Constructions
+              Calvary Constructions Pvt Ltd
             </span>
             <h1
               ref={heroTextRef}
@@ -164,7 +164,7 @@ export default function AboutPage() {
               {/* Right text column */}
               <div className="lg:col-span-7 space-y-8 text-base md:text-lg text-[var(--muted-ink)] font-light leading-relaxed pt-2 lg:pt-16">
                 <p>
-                  At Calvary Constructions, we specialize in delivering reliable and cost-effective construction
+                  At Calvary Constructions Pvt Ltd, we specialize in delivering reliable and cost-effective construction
                   services tailored to client needs. With years of industry experience, we combine engineering
                   expertise, skilled craftsmanship, and innovative construction methods to create lasting structures.
                 </p>
